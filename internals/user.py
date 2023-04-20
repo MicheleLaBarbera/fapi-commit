@@ -1,0 +1,58 @@
+from typing import Annotated
+from fastapi import Depends, HTTPException, status
+from jose import JWTError, jwt
+from dependencies.models import TokenData, User
+
+from internals.auth import ALGORITHM, SECRET_KEY, verify_password, oauth2_scheme, get_password_hash
+from db import get_db
+
+async def get_user(username: str):
+  _db = await get_db()
+
+  user = await _db["users"].find_one({"username": username})
+
+  if user:
+    return user
+
+async def authenticate_user(username: str, password: str):
+  user = await get_user(username)
+  print(user)
+
+  if not user:
+    return False
+  
+  if not verify_password(password, user['password']):
+    return False
+  
+  return user
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+  credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+  )
+
+  try:
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    username: str = payload.get("sub")
+    if username is None:
+        raise credentials_exception
+    token_data = TokenData(username=username)
+
+  except JWTError:
+    raise credentials_exception
+  
+  user = await get_user(username=token_data.username)
+
+  if user is None:
+    raise credentials_exception
+  
+  return user
+
+async def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]):
+  if current_user.get('is_disabled') is not None:
+    if current_user['is_disabled']:
+      raise HTTPException(status_code=400, detail="Inactive user")
+
+  return current_user
