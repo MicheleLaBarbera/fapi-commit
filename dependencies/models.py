@@ -69,8 +69,10 @@ class User(BaseModel):
 	username: str
 	email: str
 	firstname: str
+	password: Optional[str]
 	lastname: str
-	is_disabled: bool
+	is_disabled: Optional[bool]
+	role: Optional[int]
 
 class UserAuth(BaseModel):
 	username: str
@@ -79,3 +81,58 @@ class UserAuth(BaseModel):
 
 class TokenData(BaseModel):
   username: str | None = None
+  
+class Classroom(BaseModel):
+	id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+	name: str
+	size: int
+	invite_token: Optional[str]
+
+	class Config:
+		allow_population_by_field_name = True
+		arbitrary_types_allowed = True
+		json_encoders = {ObjectId: str}
+
+class ClassroomStudent(BaseModel):
+	id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+	classroom_id: PyObjectId = Field(default_factory=PyObjectId)
+	student_id: PyObjectId = Field(default_factory=PyObjectId)
+
+	class Config:
+		allow_population_by_field_name = True
+		arbitrary_types_allowed = True
+		json_encoders = {ObjectId: str}
+
+class ClassroomHomework(BaseModel):
+	id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+	classroom_id: PyObjectId = Field(default_factory=PyObjectId)
+	title: str
+	body: str
+	node_min: int
+	node_max: int
+	start_datetime: int
+	expire_datetime: int
+
+	class Config:
+		allow_population_by_field_name = True
+		arbitrary_types_allowed = True
+		json_encoders = {ObjectId: str}
+
+class ClassroomHomeworkMap(BaseModel):
+	id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+	homework_id: PyObjectId = Field(default_factory=PyObjectId)
+	student_id: PyObjectId = Field(default_factory=PyObjectId)
+	nodes_count: int 
+	edges_count: int
+	entropy:  Optional[float]
+	entropy_percent:  Optional[float]
+	effort:  Optional[float]
+	created_at:  Optional[int]
+	nodes_labels: List[str]
+	adjacency_matrix: List[List[int]]
+	adjacency_matrix_labels: List[List[str]]
+
+	class Config:
+		allow_population_by_field_name = True
+		arbitrary_types_allowed = True
+		json_encoders = {ObjectId: str}

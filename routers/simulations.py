@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated
 from bson import ObjectId
 from fastapi import APIRouter, Body, Depends, status, HTTPException
 from fastapi.responses import JSONResponse
@@ -8,7 +8,7 @@ import numpy as np
 import time
 
 from db import get_db
-from dependencies.models import Simulation, SimulationMap, User
+from dependencies.models import Simulation, User
 from dependencies.utils import ConceptMap
 from internals.user import get_current_user
 from datetime import date
@@ -54,14 +54,6 @@ async def show_simulation(name: str, current_user: Annotated[User, Depends(get_c
 	simulation['maps'] = simulation_maps
 
 	return simulation
-
-@router.get("/", response_description="List all simulations", response_model=List[Simulation])
-async def read_simulations(current_user: Annotated[User, Depends(get_current_user)]):
-	_db = await get_db()
-
-	simulations = await _db["simulations"].find().to_list(None)
-	return simulations
-
 
 @router.post("/", response_description="Add a new simulation")
 async def create_simulation(current_user: Annotated[User, Depends(get_current_user)], simulation: Simulation = Body(...)):
