@@ -55,11 +55,14 @@ async def show_classrooms(current_user: Annotated[User, Depends(get_current_user
     
     if classrooms:
       for classroom in classrooms:
-          classroom_students_count = await _db["classrooms_students"].count_documents({"classroom_id": classroom['_id']})
-          classroom["students_count"] = classroom_students_count
+        teacher = await _db["users"].find_one({"_id": classroom['teacher_id']})
+        classroom["teacher"] = teacher
+    
+        classroom_students_count = await _db["classrooms_students"].count_documents({"classroom_id": classroom['_id']})
+        classroom["students_count"] = classroom_students_count
 
-          classroom_homeworks_count = await _db["classrooms_homeworks"].count_documents({"classroom_id": classroom['_id'], "expire_datetime": {"$gte": int(dt)}})
-          classroom["homeworks_count"] = classroom_homeworks_count
+        classroom_homeworks_count = await _db["classrooms_homeworks"].count_documents({"classroom_id": classroom['_id'], "expire_datetime": {"$gte": int(dt)}})
+        classroom["homeworks_count"] = classroom_homeworks_count
           
     return JSONResponse(status_code=status.HTTP_200_OK, content=json.loads(json_util.dumps(classrooms)))
   
@@ -72,16 +75,19 @@ async def show_classrooms(current_user: Annotated[User, Depends(get_current_user
     dt = ct.timestamp()
 
     if classrooms_student:
-      for classrooms_student in classrooms_student:
-          classroom = await _db["classrooms"].find_one({"_id": classrooms_student['classroom_id']})
+      for classroom_student in classrooms_student:
+        classroom = await _db["classrooms"].find_one({"_id": classroom_student['classroom_id']})
+        teacher = await _db["users"].find_one({"_id": ObjectId(classroom['teacher_id'])})
+        classroom["teacher"] = teacher
+        print(classroom)
 
-          classroom_students_count = await _db["classrooms_students"].count_documents({"classroom_id": classroom['_id']})
-          classroom["students_count"] = classroom_students_count
+        classroom_students_count = await _db["classrooms_students"].count_documents({"classroom_id": classroom['_id']})
+        classroom["students_count"] = classroom_students_count
 
-          classroom_homeworks_count = await _db["classrooms_homeworks"].count_documents({"classroom_id": classroom['_id'], "expire_datetime": {"$gte": int(dt)}})
-          classroom["homeworks_count"] = classroom_homeworks_count
+        classroom_homeworks_count = await _db["classrooms_homeworks"].count_documents({"classroom_id": classroom['_id'], "expire_datetime": {"$gte": int(dt)}})
+        classroom["homeworks_count"] = classroom_homeworks_count
 
-          classrooms.append(classroom)
+        classrooms.append(classroom)
 
     return JSONResponse(status_code=status.HTTP_200_OK, content=json.loads(json_util.dumps(classrooms)))
 

@@ -6,6 +6,7 @@ from bson import ObjectId, json_util
 import json
 from fastapi.encoders import jsonable_encoder
 import time
+import datetime
 
 from dependencies.models import Token, User, UserAuth
 from internals.auth import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_password_hash
@@ -45,6 +46,9 @@ async def show_user_homeworks(current_user: Annotated[User, Depends(get_current_
 
   homeworks = []
 
+  ct = datetime.datetime.now()
+  dt = ct.timestamp()
+
   if current_user['role'] == 1:
     classrooms = await _db["classrooms"].find({"teacher_id": current_user['_id']}).to_list(None)
 
@@ -56,9 +60,48 @@ async def show_user_homeworks(current_user: Annotated[User, Depends(get_current_
   elif current_user['role'] == 0:
     student_classrooms = await _db["classrooms_students"].find({'student_id': current_user['_id'] }).to_list(None)
     for student_classroom in student_classrooms:
-        tmp_homeworks = await _db["classrooms_homeworks"].find({'classroom_id': student_classroom['classroom_id'] }).to_list(None)
+        tmp_homeworks = await _db["classrooms_homeworks"].find({'classroom_id': student_classroom['classroom_id'], "expire_datetime": {"$gte": int(dt)} }).to_list(None)
+        if tmp_homeworks:
+          for tmp_homework in tmp_homeworks:
+            tmp_homework['status'] = 0
+            homework_map = await _db["classrooms_homeworks_maps"].find_one({'homework_id': tmp_homework['_id'], 'student_id': current_user['_id'] })
+            if homework_map:
+              tmp_homework['status'] = 1
+
+            homeworks.append(tmp_homework)
+
+  return JSONResponse(status_code=status.HTTP_200_OK, content=json.loads(json_util.dumps(homeworks)))
+
+@router.get("/homeworks/expired", response_description="Show current user homeworks")
+async def show_user_homeworks(current_user: Annotated[User, Depends(get_current_user)]):
+  _db = await get_db()
+
+  homeworks = []
+
+  ct = datetime.datetime.now()
+  dt = ct.timestamp()
+
+  if current_user['role'] == 1:
+    classrooms = await _db["classrooms"].find({"teacher_id": current_user['_id']}).to_list(None)
+
+    if classrooms:
+      for classroom in classrooms:
+        tmp_homeworks = await _db["classrooms_homeworks"].find({'classroom_id': classroom['_id'] }).to_list(None)
         if tmp_homeworks:
           homeworks += tmp_homeworks
+
+  elif current_user['role'] == 0:
+    student_classrooms = await _db["classrooms_students"].find({'student_id': current_user['_id'] }).to_list(None)
+    for student_classroom in student_classrooms:
+        tmp_homeworks = await _db["classrooms_homeworks"].find({'classroom_id': student_classroom['classroom_id'], "expire_datetime": {"$lte": int(dt)} }).to_list(None)
+        if tmp_homeworks:
+          for tmp_homework in tmp_homeworks:
+            tmp_homework['status'] = 0
+            homework_map = await _db["classrooms_homeworks_maps"].find_one({'homework_id': tmp_homework['_id'], 'student_id': current_user['_id'] })
+            if homework_map:
+              tmp_homework['status'] = 1
+
+            homeworks.append(tmp_homework)
 
   return JSONResponse(status_code=status.HTTP_200_OK, content=json.loads(json_util.dumps(homeworks)))
 
