@@ -264,9 +264,6 @@ async def show_classroom_homeworks(classroom_id: str, homework_id: str, current_
 async def create_classroom_homework_map(classroom_id: str, homework_id: str, current_user: Annotated[User, Depends(get_current_user)], classroom_homework_map: ClassroomHomeworkMap = Body(...)):
   _db = await get_db()
 
-  if current_user['role'] == 1:
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to submit an homework")
-
   classroom = await _db["classrooms"].find_one({"_id": ObjectId(classroom_id)})
 
   if classroom == None:
