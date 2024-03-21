@@ -245,7 +245,7 @@ async def show_classroom_homeworks(classroom_id: str, homework_id: str, current_
     if student_classroom == None:
       raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to see this classroom")
   
-  homework = await _db["classrooms_homeworks"].find_one({'_id': ObjectId(homework_id) })
+  homework = await _db["classrooms_homeworks"].find_one({'_id': ObjectId(homework_id)})
   
   if homework == None:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Homework not found")
@@ -256,7 +256,15 @@ async def show_classroom_homeworks(classroom_id: str, homework_id: str, current_
 
   if current_user['role'] == 1:
     homework_maps = await _db["classrooms_homeworks_maps"].find({'homework_id': homework['_id'] }).to_list(None)
-    homework['maps'] = homework_maps
+
+    homework['maps'] = []
+
+    for homework_map in homework_maps:
+      author = await _db["users"].find_one({'_id': ObjectId(homework_map['student_id'])})
+      homework_map['author_name'] = author['firstname'] + " " + author['lastname'] if author else ""
+      homework_map['is_teacher_map'] = True if author['role'] == 1 else False
+
+      homework['maps'].append(homework_map)
 
   return JSONResponse(status_code=status.HTTP_200_OK, content=json.loads(json_util.dumps(homework)))
 
