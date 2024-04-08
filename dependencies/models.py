@@ -131,6 +131,7 @@ class ClassroomHomeworkMap(BaseModel):
 	nodes_labels: List[str]
 	adjacency_matrix: List[List[int]]
 	adjacency_matrix_labels: List[List[str]]
+	map_name: str
 
 	class Config:
 		allow_population_by_field_name = True
