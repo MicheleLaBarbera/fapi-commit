@@ -72,12 +72,11 @@ class User(BaseModel):
 	password: Optional[str]
 	lastname: str
 	is_disabled: Optional[bool]
-	role: Optional[int]
+	role: int
 
 class UserAuth(BaseModel):
 	username: str
 	password: str
-	remember_me: int
 
 class TokenData(BaseModel):
   username: str | None = None

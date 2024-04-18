@@ -119,7 +119,6 @@ async def create_user(user: User = Body(...)):
   user['password'] = get_password_hash(user['password'])
   user['created_at'] = int(time.time())
   user['is_disabled'] = False
-  user['role'] = 0
 
   new_user = await _db["users"].insert_one(user)
   created_user = await _db["users"].find_one({"_id": new_user.inserted_id})

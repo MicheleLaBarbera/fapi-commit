@@ -222,6 +222,7 @@ async def create_classroom_homework(id: str, current_user: Annotated[User, Depen
   del classroom_homework['_id']
 
   classroom_homework['classroom_id'] = ObjectId(id)
+  classroom_homework['created_at'] = int(time.time())
 
   new_classroom_homework = await _db["classrooms_homeworks"].insert_one(classroom_homework)
   created_classroom_homework = await _db["classrooms_homeworks"].find_one({"_id": new_classroom_homework.inserted_id})
