@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
-from dependencies.models import TokenData, User
+from dependencies.models import TokenData, UserToken
 
 from internals.auth import ALGORITHM, SECRET_KEY, verify_password, oauth2_scheme, get_password_hash
 from db import get_db
@@ -23,7 +23,7 @@ async def authenticate_user(username: str, password: str):
   
   if not verify_password(password, user['password']):
     return False
-  
+
   return user
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
@@ -50,7 +50,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
   
   return user
 
-async def get_current_active_user(current_user: Annotated[User, Depends(get_current_user)]):
+async def get_current_active_user(current_user: Annotated[UserToken, Depends(get_current_user)]):
   if current_user.get('is_disabled') is not None:
     if current_user['is_disabled']:
       raise HTTPException(status_code=400, detail="Inactive user")

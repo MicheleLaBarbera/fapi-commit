@@ -65,6 +65,7 @@ class Token(BaseModel):
 	access_token: str
 	token_type: str
 
+
 class User(BaseModel):
 	username: str
 	email: str
@@ -73,6 +74,25 @@ class User(BaseModel):
 	lastname: str
 	is_disabled: Optional[bool]
 	role: int
+
+
+class UserToken(BaseModel):
+	id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+	username: str
+	email: str
+	firstname: str
+	lastname: str
+	is_disabled: bool
+	role: int
+
+	class Config:
+		json_encoders = {ObjectId: str}
+
+class UserUpdate(BaseModel):
+	email: Optional[str]
+	firstname: Optional[str]
+	password: Optional[str]
+	lastname: Optional[str]
 
 class UserAuth(BaseModel):
 	username: str

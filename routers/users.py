@@ -8,7 +8,9 @@ from fastapi.encoders import jsonable_encoder
 import time
 import datetime
 
-from dependencies.models import Token, User, UserAuth
+from pymongo import ReturnDocument
+
+from dependencies.models import Token, User, UserAuth, UserUpdate, UserToken
 from internals.auth import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_password_hash
 from internals.user import authenticate_user, get_current_active_user
 
@@ -36,8 +38,8 @@ async def login_for_access_token(form_data: UserAuth):
   return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.get("/me", response_model=User)
-async def read_users_me(current_user: Annotated[User, Depends(get_current_active_user)]):
+@router.get("/me", response_model=UserToken)
+async def read_users_me(current_user: Annotated[UserToken, Depends(get_current_active_user)]):
   return current_user
 
 @router.get("/homeworks", response_description="Show current user homeworks")
@@ -124,3 +126,30 @@ async def create_user(user: User = Body(...)):
   created_user = await _db["users"].find_one({"_id": new_user.inserted_id})
 
   return JSONResponse(status_code=status.HTTP_201_CREATED, content=json.loads(json_util.dumps(created_user)))
+
+@router.patch("/{user_id}/", response_description="Patch a user")
+async def patch_user(user_id: str, current_user: Annotated[User, Depends(get_current_user)], user: UserUpdate = Body(...)):
+  _db = await get_db()
+
+  user = jsonable_encoder(user)
+
+  if str(current_user['_id']) != user_id:
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to update this user")
+
+  if user['email'] != current_user['email']:
+    same_user = await _db["users"].find_one({"email": user['email']})
+
+    if same_user:
+      raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Specified email address already exists")
+
+  if user['password']:
+    user['password'] = get_password_hash(user['password'])
+  else:
+    del user['password']
+
+  updated_user = await _db["users"].find_one_and_update({"_id": current_user['_id']}, {"$set": user}, return_document=ReturnDocument.AFTER)
+  
+  if updated_user is None:
+      raise HTTPException(status_code=404, detail=f"Student not found")
+
+  return JSONResponse(status_code=status.HTTP_201_CREATED, content=json.loads(json_util.dumps(updated_user)))
